@@ -1,8 +1,8 @@
 (function() {
   var Befunge, BefungeDelegate, Direction, Examples, Main, Output, Stack, State, Torus, World, util,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   Direction = {
     Up: 0,
@@ -330,6 +330,7 @@
     __extends(Main, _super);
 
     function Main(code) {
+      this.update = __bind(this.update, this);
       var light;
       this.world = new World;
       this.befunge = new Befunge(code, this);
@@ -338,19 +339,27 @@
       this.torus = new Torus(this.befunge.program);
       this.root.add(this.torus);
       this.stack = new Stack;
-      this.root.add(this.stack);
+      this.torus.add(this.stack);
       this.output = new Output;
       this.root.add(this.output);
-      light = new THREE.PointLight(0x0000ff, 3, 3000);
+      light = new THREE.PointLight(0x3366ff, 3, 3000);
       light.position.x = -500;
       this.world.scene.add(light);
-      light = new THREE.PointLight(0x00ff00, 3, 3000);
-      light.position.y = -500;
-      this.world.scene.add(light);
-      light = new THREE.PointLight(0xff0000, 3, 3000);
+      light = new THREE.PointLight(0xff6633, 3, 3000);
       light.position.z = 500;
       this.world.scene.add(light);
+      this.root.update = this.update;
     }
+
+    Main.prototype.update = function() {
+      var _, _i;
+      for (_ = _i = 0; _i < 1; _ = ++_i) {
+        if (this.end) {
+          return;
+        }
+        this.end = this.befunge.doStep();
+      }
+    };
 
     Main.prototype.putNum = function(n) {
       return this.output.insert("" + n + " ");
@@ -385,38 +394,50 @@
 
     function Output() {
       Output.__super__.constructor.call(this);
-      this.height = 16;
-      this.textGeometryGen = util.textGeometryGen(this.height, 6);
+      this.height = 12;
+      this.textGeometryGen = util.textGeometryGen(this.height, 8);
       this.cursor = {
         x: 0,
         y: 0
       };
       this.mergedGeometry = new THREE.Geometry;
-      this.textMesh = util.flatMesh(this.mergedGeometry, 0xffffff);
-      this.add(this.textMesh);
+      this.mergedGeometry.dynamic = true;
       this.position.x = 100;
       this.position.y = 250;
       this.rotation.x = Math.PI * 0.3;
       this.rotation.y = -Math.PI * 0.15;
+      this.buf = "";
     }
 
     Output.prototype.insert = function(text) {
       var geo, i, line, _i, _len, _ref, _results;
+      return;
       _ref = text.split("\n");
       _results = [];
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         line = _ref[i];
         if (i !== 0) {
           this.cursor.x = 0;
-          this.cursor.y -= this.height;
+          this.cursor.y -= this.height + 2;
+          this.buf = "";
         }
         if (line === "") {
           continue;
         }
-        geo = this.textGeometryGen(line);
+        if (/^ +$/.test(line)) {
+          this.buf += line;
+          continue;
+        }
+        geo = this.textGeometryGen(this.buf + line);
+        this.buf = "";
         this.mergedGeometry.merge(geo, new THREE.Matrix4().makeTranslation(this.cursor.x, this.cursor.y, 0));
+        if (this.textMesh != null) {
+          this.remove(this.textMesh);
+        }
+        this.textMesh = util.flatMesh(this.mergedGeometry.clone(), 0xffffff);
+        this.add(this.textMesh);
         geo.computeBoundingBox();
-        _results.push(this.cursor.x += geo.boundingBox.max.x);
+        _results.push(this.cursor.x += geo.boundingBox.max.x + 1);
       }
       return _results;
     };
@@ -430,11 +451,35 @@
 
     function Stack() {
       Stack.__super__.constructor.call(this);
+      this.textGeometryGen = util.textGeometryGen(20, 10, true);
+      this.list = [];
     }
 
-    Stack.prototype.push = function(n) {};
+    Stack.prototype.push = function(n) {
+      var obj;
+      obj = util.flatMesh(this.textGeometryGen(String(n)), 0xffffff);
+      this.list.push(obj);
+      this.updatePosition();
+      return this.add(obj);
+    };
 
-    Stack.prototype.pop = function() {};
+    Stack.prototype.pop = function() {
+      var obj;
+      obj = this.list.pop();
+      this.updatePosition();
+      return this.remove(obj);
+    };
+
+    Stack.prototype.updatePosition = function() {
+      var i, obj, _i, _len, _ref, _results;
+      _ref = this.list;
+      _results = [];
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        obj = _ref[i];
+        _results.push(obj.position.z = 30 * i - (this.list.length - 1) * 15);
+      }
+      return _results;
+    };
 
     return Stack;
 
@@ -453,7 +498,7 @@
       r1 = Math.max(16, size.y) * 2.7;
       r2 = Math.max(40, size.x) * 1.7 + r1;
       k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16);
-      this.textGeometryGen = util.textGeometryGen(k, 4, true);
+      this.textGeometryGen = util.textGeometryGen(k, 8, true);
       this.matrices = (function() {
         var _i, _ref, _results;
         _results = [];
@@ -502,7 +547,13 @@
 
     Torus.prototype.readCode = function(y, x) {};
 
-    Torus.prototype.writeCode = function(y, x, to) {};
+    Torus.prototype.writeCode = function(y, x, to) {
+      var tmp;
+      if (this.objects[y][x] != null) {
+        this.remove(this.objects[y][x]);
+      }
+      return this.objects[y][x] = to === " " ? null : (tmp = util.flatMesh(this.textGeometryGen(to), 0xffffff), tmp.applyMatrix(this.matrices[y][x]), this.add(tmp), tmp);
+    };
 
     return Torus;
 
@@ -630,6 +681,8 @@
       this.passes.copy.renderToScreen = true;
       this.composer = new THREE.EffectComposer(this.renderer);
       this.composer.addPass(this.passes.render);
+      this.composer.addPass(this.passes.fxaa);
+      this.composer.addPass(this.passes.bloom);
       this.composer.addPass(this.passes.copy);
       window.addEventListener('resize', this.onWindowResize);
       this.onWindowResize();

@@ -38,8 +38,8 @@ class World
 
     @composer = new THREE.EffectComposer @renderer
     @composer.addPass @passes.render
-    #@composer.addPass @passes.fxaa
-    #@composer.addPass @passes.bloom
+    @composer.addPass @passes.fxaa
+    @composer.addPass @passes.bloom
     @composer.addPass @passes.copy
 
     window.addEventListener 'resize', @onWindowResize

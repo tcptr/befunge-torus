@@ -8,7 +8,7 @@ class Torus extends THREE.Object3D
 
     k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16)
 
-    @textGeometryGen = util.textGeometryGen k, 4, true
+    @textGeometryGen = util.textGeometryGen k, 8, true
 
     @matrices = for y in [0...size.y]
       yrate = Math.PI * 2 * y / size.y
@@ -31,13 +31,24 @@ class Torus extends THREE.Object3D
           @add ret
           ret
 
+    # TODO reduce drawcall
+
   update: ->
     @rotation.x += 0.003
     @rotation.y += 0.003
 
   readCode: (y, x) ->
-    # TODO
+    # TODO animation
 
   writeCode: (y, x, to) ->
-    # TODO
+    # TODO animation
+    @remove @objects[y][x] if @objects[y][x]?
+
+    @objects[y][x] = if to == " "
+      null
+    else
+      tmp = util.flatMesh @textGeometryGen(to), 0xffffff
+      tmp.applyMatrix @matrices[y][x]
+      @add tmp
+      tmp
 

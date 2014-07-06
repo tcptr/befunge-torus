@@ -28869,7 +28869,7 @@ THREE.FontUtils.generateShapes = function( text, parameters ) {
 				//throw ( "Warning, unable to triangulate polygon!" );
 				//return null;
 				// Sometimes warning is fine, especially polygons are triangulated in reverse.
-				console.log( "Warning, unable to triangulate polygon!" );
+				// console.log( "Warning, unable to triangulate polygon!" );
 
 				if ( indices ) return vertIndices;
 				return result;
@@ -30867,7 +30867,7 @@ THREE.Shape.Utils = {
 
 			if ( allPointsMap[ key ] !== undefined ) {
 
-				console.log( "Duplicate point", key );
+				// console.log( "Duplicate point", key );
 
 			}
 

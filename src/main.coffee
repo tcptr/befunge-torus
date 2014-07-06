@@ -10,21 +10,25 @@ class Main extends BefungeDelegate
     @root.add @torus
 
     @stack = new Stack
-    @root.add @stack
+    @torus.add @stack
 
     @output = new Output
     @root.add @output
 
-    # test
-    light = new THREE.PointLight 0x0000ff, 3, 3000
+    # TODO
+    light = new THREE.PointLight 0x3366ff, 3, 3000
     light.position.x = -500
     @world.scene.add light
-    light = new THREE.PointLight 0x00ff00, 3, 3000
-    light.position.y = -500
-    @world.scene.add light
-    light = new THREE.PointLight 0xff0000, 3, 3000
+    light = new THREE.PointLight 0xff6633, 3, 3000
     light.position.z = 500
     @world.scene.add light
+
+    @root.update = @update
+
+  update: =>
+    for _ in [0...1]
+      return if @end
+      @end = @befunge.doStep()
 
   putNum: (n) ->
     @output.insert "#{n} "
