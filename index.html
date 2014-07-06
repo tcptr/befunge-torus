@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>befunge-torus</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="resources/style.css">
+  </head>
+  <body>
+    <script src="js/lib/zepto.min.js"></script>
+
+    <script src="js/lib/three.js"></script>
+
+    <script src="js/lib/shaders/CopyShader.js"></script>
+    <script src="js/lib/shaders/FXAAShader.js"></script>
+    <script src="js/lib/shaders/ConvolutionShader.js"></script>
+
+    <script src="js/lib/postprocessing/EffectComposer.js"></script>
+    <script src="js/lib/postprocessing/RenderPass.js"></script>
+    <script src="js/lib/postprocessing/ShaderPass.js"></script>
+    <script src="js/lib/postprocessing/MaskPass.js"></script>
+    <script src="js/lib/postprocessing/BloomPass.js"></script>
+
+    <script src="resources/misakigothic_regular.typeface.js"></script>
+    <script src="resources/helvetiker_bold.typeface.js"></script>
+    <script src="js/befunge-torus.js"></script>
+
+    <div id="entry">
+      <h1>befunge-torus</h1>
+      <p>Befunge interpreter and visualizer on three.js</p>
+      <p><a href="https://github.com/tcptr/befunge-torus">Source code (github)</a> /
+         <a href="https://github.com/catseye/Befunge-93/">Befunge-93</a></p>
+      <h2>Examples:</h2>
+      <ul>
+        <li><a href="#hello" class="example">Hello, World!</a></li>
+        <li><a href="#fizzbuzz" class="example">FizzBuzz</a></li>
+        <li><a href="#lifegame" class="example">Conway's Game of Life</a></li>
+        <li><a href="#bottles" class="example">99 Bottles of Beer</a></li>
+        <li><a href="#aturley" class="example">Sierpinski gasket</a></li>
+      </ul>
+      <textarea id="code"></textarea>
+      <p><a href="#" id="launch">Launch!</a></p>
+      <p class="right"><a href="http://tcptr.github.io/">tcptr.github.io</a></p>
+    </div>
+  </body>
+</html>

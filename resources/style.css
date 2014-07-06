@@ -1,0 +1,38 @@
+body{
+  background: #000;
+  margin: 0px;
+  overflow: hidden;
+}
+#entry{
+  margin:80px auto;
+  width:550px;
+  color:#3498db;
+}
+#entry a{
+  color:#3498db;
+  transition:0.3s;
+}
+#entry a:hover{
+  color:#f1c40f;
+}
+#entry h1{
+  font-size:200%;
+  border-bottom:1px solid #3498db;
+}
+#entry h2{
+  font-size:100%;
+}
+#entry textarea{
+  border:none;
+  background:#051023;
+  font-size:100%;
+  width:540px;
+  height:200px;
+  color:#3498db;
+  padding:5px;
+  font-size:70%;
+}
+.right{
+  text-align:right;
+}
+
