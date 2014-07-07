@@ -20,8 +20,7 @@ class Torus extends THREE.Object3D
       yrate = Math.PI * 2 * y / size.y
       for x in [0...size.x]
         xrate = Math.PI * 2 * x / size.x
-        new THREE.Matrix4()
-          .multiply new THREE.Matrix4().makeTranslation(Math.cos(xrate)*r2, Math.sin(xrate)*r2, 0)
+        new THREE.Matrix4().makeTranslation(Math.cos(xrate)*r2, Math.sin(xrate)*r2, 0)
           .multiply new THREE.Matrix4().makeRotationZ(xrate)
           .multiply new THREE.Matrix4().makeRotationY(yrate)
           .multiply new THREE.Matrix4().makeTranslation(0, 0, r1)

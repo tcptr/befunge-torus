@@ -29,7 +29,7 @@ class Main extends BefungeDelegate
     @root.update = @update
 
   update: =>
-    for _ in [0...1]
+    for _ in [0...100]
       return if @end
       @end = @befunge.doStep()
 

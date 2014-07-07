@@ -356,7 +356,7 @@
 
     Main.prototype.update = function() {
       var _, _i;
-      for (_ = _i = 0; _i < 1; _ = ++_i) {
+      for (_ = _i = 0; _i < 100; _ = ++_i) {
         if (this.end) {
           return;
         }
@@ -413,31 +413,57 @@
 
     function Output() {
       Output.__super__.constructor.call(this);
-      this.height = 12;
+      this.height = 14;
       this.textGeometryGen = util.textGeometryGen(this.height, 8);
       this.cursor = {
         x: 0,
         y: 0
       };
-      this.mergedGeometry = new THREE.Geometry;
-      this.mergedGeometry.dynamic = true;
-      this.position.x = 100;
+      this.tmpMatrix = new THREE.Matrix4();
+      this.position.x = 150;
       this.position.y = 250;
       this.rotation.x = Math.PI * 0.3;
       this.rotation.y = -Math.PI * 0.15;
       this.buf = "";
+      this.currentLine = [];
+      this.lines = [];
     }
 
+    Output.prototype.newline = function() {
+      var g, geo, mesh, _i, _j, _len, _len1, _ref, _ref1;
+      this.cursor.x = 0;
+      this.cursor.y -= this.height + 2;
+      geo = new THREE.Geometry();
+      _ref = this.currentLine;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        g = _ref[_i];
+        geo.merge(g.geometry, g.matrix);
+        this.remove(g);
+      }
+      mesh = util.flatMesh(geo, 0xffffff);
+      this.add(mesh);
+      this.lines.push(mesh);
+      this.buf = "";
+      this.currentLine = [];
+      if (this.lines.length > 20) {
+        this.cursor.y += this.height + 2;
+        this.remove(this.lines.shift());
+        _ref1 = this.lines;
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          mesh = _ref1[_j];
+          mesh.applyMatrix(this.tmpMatrix.makeTranslation(0, this.height + 2, 0));
+        }
+      }
+      return null;
+    };
+
     Output.prototype.insert = function(text) {
-      var geo, i, line, _i, _len, _ref, _results;
+      var geo, i, line, mesh, _i, _len, _ref;
       _ref = text.split("\n");
-      _results = [];
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         line = _ref[i];
         if (i !== 0) {
-          this.cursor.x = 0;
-          this.cursor.y -= this.height + 2;
-          this.buf = "";
+          this.newline();
         }
         if (line === "") {
           continue;
@@ -448,16 +474,14 @@
         }
         geo = this.textGeometryGen(this.buf + line);
         this.buf = "";
-        this.mergedGeometry.merge(geo, new THREE.Matrix4().makeTranslation(this.cursor.x, this.cursor.y, 0));
-        if (this.textMesh != null) {
-          this.remove(this.textMesh);
-        }
-        this.textMesh = util.flatMesh(this.mergedGeometry.clone(), 0xffffff);
-        this.add(this.textMesh);
+        mesh = util.flatMesh(geo, 0xffffff);
+        mesh.applyMatrix(this.tmpMatrix.makeTranslation(this.cursor.x, this.cursor.y, 0));
+        this.add(mesh);
+        this.currentLine.push(mesh);
         geo.computeBoundingBox();
-        _results.push(this.cursor.x += geo.boundingBox.max.x + 1);
+        this.cursor.x += geo.boundingBox.max.x + 1;
       }
-      return _results;
+      return null;
     };
 
     return Output;
@@ -532,7 +556,7 @@
             _results1 = [];
             for (x = _j = 0, _ref1 = size.x; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; x = 0 <= _ref1 ? ++_j : --_j) {
               xrate = Math.PI * 2 * x / size.x;
-              _results1.push(new THREE.Matrix4().multiply(new THREE.Matrix4().makeTranslation(Math.cos(xrate) * r2, Math.sin(xrate) * r2, 0)).multiply(new THREE.Matrix4().makeRotationZ(xrate)).multiply(new THREE.Matrix4().makeRotationY(yrate)).multiply(new THREE.Matrix4().makeTranslation(0, 0, r1)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI / 2)));
+              _results1.push(new THREE.Matrix4().makeTranslation(Math.cos(xrate) * r2, Math.sin(xrate) * r2, 0).multiply(new THREE.Matrix4().makeRotationZ(xrate)).multiply(new THREE.Matrix4().makeRotationY(yrate)).multiply(new THREE.Matrix4().makeTranslation(0, 0, r1)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI / 2)));
             }
             return _results1;
           })());
