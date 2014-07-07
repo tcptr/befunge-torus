@@ -5,8 +5,9 @@ $ ->
     $('#code').val Examples[$(this).attr('href')]
 
   $('#launch').on 'click', ->
-    new Main $('#code').val()
+    new Main $('#code').val(), $('#inputchar').val(), $('#inputnumber').val()
     $('#entry').remove()
+    $('#back').show()
     false
   
 Examples =
@@ -84,5 +85,4 @@ Examples =
            >:>::3g: ,\\188                  ^^               -1\\g21\\g22<p3\\"_":<
     ________________________________@_________________________________^  p3\\"@":<
   """
-
 

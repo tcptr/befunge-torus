@@ -17,7 +17,6 @@ class Output extends THREE.Object3D
     @buf = ""
 
   insert: (text) ->
-    return
     for line, i in text.split("\n")
       if i != 0
         @cursor.x = 0

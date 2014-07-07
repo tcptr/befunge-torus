@@ -1,5 +1,8 @@
 class Main extends BefungeDelegate
-  constructor: (code) ->
+  constructor: (code, inputChar, inputNumber) ->
+    @inputChar = inputChar.split("")
+    @inputNumber = inputNumber.split(",")
+
     @world = new World
     @befunge = new Befunge code, @
 
@@ -48,6 +51,16 @@ class Main extends BefungeDelegate
   writeCode: (y, x, from, to) ->
     @torus.writeCode y, x, to
 
-  # TODO getNum, getChar
+  getNum: ->
+    if @inputNumber.length > 0
+      Number @inputNumber.shift()
+    else
+      0
+
+  getChar: ->
+    if @inputChar.length > 0
+      @inputChar.shift()
+    else
+      "\n"
 
 

@@ -216,11 +216,11 @@
           this.state = State.Read;
           break;
         case "&":
-          n = this.stack.getNum();
+          n = this.delegate.getNum();
           this.push(n);
           break;
         case "~":
-          c = this.stack.getChar();
+          c = this.delegate.getChar();
           this.push(c.charCodeAt(0));
           break;
         case ".":
@@ -312,8 +312,9 @@
       return $('#code').val(Examples[$(this).attr('href')]);
     });
     return $('#launch').on('click', function() {
-      new Main($('#code').val());
+      new Main($('#code').val(), $('#inputchar').val(), $('#inputnumber').val());
       $('#entry').remove();
+      $('#back').show();
       return false;
     });
   });
@@ -329,9 +330,11 @@
   Main = (function(_super) {
     __extends(Main, _super);
 
-    function Main(code) {
+    function Main(code, inputChar, inputNumber) {
       this.update = __bind(this.update, this);
       var light;
+      this.inputChar = inputChar.split("");
+      this.inputNumber = inputNumber.split(",");
       this.world = new World;
       this.befunge = new Befunge(code, this);
       this.root = new THREE.Object3D;
@@ -385,6 +388,22 @@
       return this.torus.writeCode(y, x, to);
     };
 
+    Main.prototype.getNum = function() {
+      if (this.inputNumber.length > 0) {
+        return Number(this.inputNumber.shift());
+      } else {
+        return 0;
+      }
+    };
+
+    Main.prototype.getChar = function() {
+      if (this.inputChar.length > 0) {
+        return this.inputChar.shift();
+      } else {
+        return "\n";
+      }
+    };
+
     return Main;
 
   })(BefungeDelegate);
@@ -411,7 +430,6 @@
 
     Output.prototype.insert = function(text) {
       var geo, i, line, _i, _len, _ref, _results;
-      return;
       _ref = text.split("\n");
       _results = [];
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {

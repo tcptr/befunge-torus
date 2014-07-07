@@ -107,10 +107,10 @@ class Befunge
       when '"'
         @state = State.Read
       when "&"
-        n = @stack.getNum()
+        n = @delegate.getNum()
         @push n
       when "~"
-        c = @stack.getChar()
+        c = @delegate.getChar()
         @push c.charCodeAt(0)
       when "."
         num = @pop()
@@ -174,4 +174,4 @@ class Befunge
 
     @movePoint()
     false
-  
+
