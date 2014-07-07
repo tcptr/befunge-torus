@@ -412,18 +412,26 @@
     __extends(Output, _super);
 
     function Output() {
+      var mesh;
       Output.__super__.constructor.call(this);
       this.height = 14;
       this.textGeometryGen = util.textGeometryGen(this.height, 8);
       this.cursor = {
         x: 0,
-        y: 0
+        y: -this.height - 2
       };
       this.tmpMatrix = new THREE.Matrix4();
       this.position.x = 150;
       this.position.y = 250;
       this.rotation.x = Math.PI * 0.3;
       this.rotation.y = -Math.PI * 0.15;
+      mesh = util.flatMesh(new THREE.PlaneGeometry(400, 400, 16, 16), 0xffffff);
+      mesh.material.wireframe = true;
+      mesh.material.opacity = 0.3;
+      mesh.material.transparent = true;
+      mesh.position.x = 180;
+      mesh.position.y = -180;
+      this.add(mesh);
       this.buf = "";
       this.currentLine = [];
       this.lines = [];
@@ -531,7 +539,7 @@
     __extends(Torus, _super);
 
     function Torus(program) {
-      var k, r1, r2, ret, size, x, xrate, y, yrate;
+      var k, mesh, r1, r2, ret, size, x, xrate, y, yrate;
       Torus.__super__.constructor.call(this);
       size = {
         x: program[0].length,
@@ -540,11 +548,11 @@
       r1 = Math.max(16, size.y) * 2.7;
       r2 = Math.max(40, size.x) * 1.7 + r1;
       k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16);
-      this.wireframe = util.flatMesh(new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff);
-      this.wireframe.material.wireframe = true;
-      this.wireframe.material.opacity = 0.3;
-      this.wireframe.material.transparent = true;
-      this.add(this.wireframe);
+      mesh = util.flatMesh(new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff);
+      mesh.material.wireframe = true;
+      mesh.material.opacity = 0.3;
+      mesh.material.transparent = true;
+      this.add(mesh);
       this.textGeometryGen = util.textGeometryGen(k, 8, true);
       this.matrices = (function() {
         var _i, _ref, _results;
@@ -595,9 +603,18 @@
     Torus.prototype.readCode = function(y, x) {};
 
     Torus.prototype.writeCode = function(y, x, to) {
-      var tmp;
+      var obj, tmp;
       if (this.objects[y][x] != null) {
-        this.remove(this.objects[y][x]);
+        obj = this.objects[y][x];
+        obj.material.transparent = true;
+        obj.update = (function(_this) {
+          return function() {
+            obj.material.opacity -= 0.02;
+            if (obj.material.opacity <= 0) {
+              return _this.remove(obj);
+            }
+          };
+        })(this);
       }
       return this.objects[y][x] = to === " " ? null : (tmp = util.flatMesh(this.textGeometryGen(to), 0xffffff), tmp.applyMatrix(this.matrices[y][x]), this.add(tmp), tmp);
     };
@@ -684,7 +701,7 @@
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       child = _ref[_i];
-      _results.push(child.visit());
+      _results.push(child != null ? child.visit() : void 0);
     }
     return _results;
   };
@@ -695,7 +712,7 @@
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       child = _ref[_i];
-      _results.push(this.remove(child));
+      _results.push(this.remove(child != null));
     }
     return _results;
   };

@@ -4,11 +4,11 @@ THREE.Object3D::update = ->
 THREE.Object3D::visit = ->
   @update()
   for child in @children
-    child.visit()
+    child?.visit()
 
 THREE.Object3D::removeAll = ->
   for child in @children.slice()
-    @remove child
+    @remove child?
 
 class World
   constructor: ->

@@ -8,11 +8,11 @@ class Torus extends THREE.Object3D
 
     k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16)
 
-    @wireframe = util.flatMesh new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff
-    @wireframe.material.wireframe = true
-    @wireframe.material.opacity = 0.3
-    @wireframe.material.transparent = true
-    @add @wireframe
+    mesh = util.flatMesh new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff
+    mesh.material.wireframe = true
+    mesh.material.opacity = 0.3
+    mesh.material.transparent = true
+    @add mesh
 
     @textGeometryGen = util.textGeometryGen k, 8, true
 
@@ -43,11 +43,16 @@ class Torus extends THREE.Object3D
     @rotation.y += 0.003
 
   readCode: (y, x) ->
-    # TODO animation
+    # nothing to do
 
   writeCode: (y, x, to) ->
-    # TODO animation
-    @remove @objects[y][x] if @objects[y][x]?
+    if @objects[y][x]?
+      obj = @objects[y][x]
+      obj.material.transparent = true
+      obj.update = =>
+        obj.material.opacity -= 0.02
+        # TODO move
+        @remove obj if obj.material.opacity <= 0
 
     @objects[y][x] = if to == " "
       null
