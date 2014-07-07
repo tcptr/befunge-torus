@@ -516,6 +516,11 @@
       r1 = Math.max(16, size.y) * 2.7;
       r2 = Math.max(40, size.x) * 1.7 + r1;
       k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16);
+      this.wireframe = util.flatMesh(new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff);
+      this.wireframe.material.wireframe = true;
+      this.wireframe.material.opacity = 0.3;
+      this.wireframe.material.transparent = true;
+      this.add(this.wireframe);
       this.textGeometryGen = util.textGeometryGen(k, 8, true);
       this.matrices = (function() {
         var _i, _ref, _results;

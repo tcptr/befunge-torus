@@ -8,6 +8,12 @@ class Torus extends THREE.Object3D
 
     k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16)
 
+    @wireframe = util.flatMesh new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff
+    @wireframe.material.wireframe = true
+    @wireframe.material.opacity = 0.3
+    @wireframe.material.transparent = true
+    @add @wireframe
+
     @textGeometryGen = util.textGeometryGen k, 8, true
 
     @matrices = for y in [0...size.y]
