@@ -20,11 +20,15 @@ class Torus extends THREE.Object3D
       yrate = Math.PI * 2 * y / size.y
       for x in [0...size.x]
         xrate = Math.PI * 2 * x / size.x
-        new THREE.Matrix4().makeTranslation(Math.cos(xrate)*r2, Math.sin(xrate)*r2, 0)
-          .multiply new THREE.Matrix4().makeRotationZ(xrate)
-          .multiply new THREE.Matrix4().makeRotationY(yrate)
+        direction = new THREE.Matrix4().makeRotationZ(xrate)
+            .multiply new THREE.Matrix4().makeRotationY(yrate)
+
+        ret = new THREE.Matrix4().makeTranslation(Math.cos(xrate)*r2, Math.sin(xrate)*r2, 0)
+          .multiply direction
           .multiply new THREE.Matrix4().makeTranslation(0, 0, r1)
           .multiply new THREE.Matrix4().makeRotationZ(Math.PI/2)
+        ret.direction = direction
+        ret
 
     @objects = for y in [0...size.y]
       for x in [0...size.x]
@@ -32,6 +36,7 @@ class Torus extends THREE.Object3D
           null
         else
           ret = util.flatMesh @textGeometryGen(program[y][x]), 0xffffff
+          ret.material.transparent = true
           ret.applyMatrix @matrices[y][x]
           @add ret
           ret
@@ -46,19 +51,32 @@ class Torus extends THREE.Object3D
     # nothing to do
 
   writeCode: (y, x, to) ->
+    vec = new THREE.Vector3(0, 0, 3).applyMatrix4(@matrices[y][x].direction)
+    speed = 0.1
+
     if @objects[y][x]?
       obj = @objects[y][x]
-      obj.material.transparent = true
       obj.update = =>
-        obj.material.opacity -= 0.02
-        # TODO move
+        obj.material.opacity -= speed
+        obj.position.add vec
         @remove obj if obj.material.opacity <= 0
 
     @objects[y][x] = if to == " "
       null
     else
       tmp = util.flatMesh @textGeometryGen(to), 0xffffff
+      tmp.material.transparent = true
+      tmp.material.opacity = 0
       tmp.applyMatrix @matrices[y][x]
+      tmp.position.sub vec.clone().multiplyScalar(1 / speed)
       @add tmp
+
+      tmp.update = ->
+        tmp.position.add vec
+        tmp.material.opacity += speed
+        if tmp.material.opacity >= 1
+          tmp.material.opacity = 1
+          delete tmp.update
+
       tmp
 
