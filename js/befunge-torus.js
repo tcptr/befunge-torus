@@ -356,7 +356,7 @@
 
     Main.prototype.update = function() {
       var _, _i;
-      for (_ = _i = 0; _i < 100; _ = ++_i) {
+      for (_ = _i = 0; _i < 10; _ = ++_i) {
         if (this.end) {
           return;
         }
@@ -539,61 +539,90 @@
     __extends(Torus, _super);
 
     function Torus(program) {
-      var direction, k, mesh, r1, r2, ret, size, x, xrate, y, yrate;
+      var base, k, rotateSpeed, x, xrate, y;
       Torus.__super__.constructor.call(this);
-      size = {
+      this.size = {
         x: program[0].length,
-        y: program.length
-      };
-      r1 = Math.max(16, size.y) * 2.7;
-      r2 = Math.max(40, size.x) * 1.7 + r1;
-      k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16);
-      mesh = util.flatMesh(new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff);
-      mesh.material.wireframe = true;
-      mesh.material.opacity = 0.3;
-      mesh.material.transparent = true;
-      this.add(mesh);
-      this.textGeometryGen = util.textGeometryGen(k, 8, true);
-      this.matrices = (function() {
-        var _i, _ref, _results;
-        _results = [];
-        for (y = _i = 0, _ref = size.y; 0 <= _ref ? _i < _ref : _i > _ref; y = 0 <= _ref ? ++_i : --_i) {
-          yrate = Math.PI * 2 * y / size.y;
-          _results.push((function() {
-            var _j, _ref1, _results1;
-            _results1 = [];
-            for (x = _j = 0, _ref1 = size.x; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; x = 0 <= _ref1 ? ++_j : --_j) {
-              xrate = Math.PI * 2 * x / size.x;
-              direction = new THREE.Matrix4().makeRotationZ(xrate).multiply(new THREE.Matrix4().makeRotationY(yrate));
-              ret = new THREE.Matrix4().makeTranslation(Math.cos(xrate) * r2, Math.sin(xrate) * r2, 0).multiply(direction).multiply(new THREE.Matrix4().makeTranslation(0, 0, r1)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
-              ret.direction = direction;
-              _results1.push(ret);
-            }
-            return _results1;
-          })());
+        y: program.length,
+        xrate: function(i) {
+          return Math.PI * 2 * i / this.x;
+        },
+        yrate: function(i) {
+          return Math.PI * 2 * i / this.y;
         }
-        return _results;
-      })();
+      };
+      this.r1 = Math.max(16, this.size.y) * 2.7;
+      this.r2 = Math.max(40, this.size.x) * 1.7 + this.r1;
+      rotateSpeed = Math.PI * 0.001;
+      (function(_this) {
+        return (function() {
+          var tube, wireframe;
+          tube = _this.r1 - 15;
+          wireframe = util.flatMesh(new THREE.TorusGeometry(_this.r2, tube, _this.size.y, _this.size.x), 0xffffff);
+          wireframe.material.wireframe = true;
+          wireframe.material.opacity = 0.3;
+          wireframe.material.transparent = true;
+          _this.add(wireframe);
+          wireframe.offset_ = Math.PI * 2 / _this.size.y;
+          wireframe.update = function() {
+            var i, idx, j, u, v, _i, _ref, _results;
+            if (rotateSpeed === 0) {
+              delete wireframe.update;
+            }
+            wireframe.offset_ -= rotateSpeed;
+            wireframe.geometry.verticesNeedUpdate = true;
+            _results = [];
+            for (j = _i = 0, _ref = _this.size.y; 0 <= _ref ? _i <= _ref : _i >= _ref; j = 0 <= _ref ? ++_i : --_i) {
+              _results.push((function() {
+                var _j, _ref1, _results1;
+                _results1 = [];
+                for (i = _j = 0, _ref1 = this.size.x; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+                  u = i / this.size.x * Math.PI * 2;
+                  v = j / this.size.y * Math.PI * 2 + wireframe.offset_;
+                  idx = j * (this.size.x + 1) + i;
+                  wireframe.geometry.vertices[idx].x = (this.r2 + tube * Math.cos(v)) * Math.cos(u);
+                  wireframe.geometry.vertices[idx].y = (this.r2 + tube * Math.cos(v)) * Math.sin(u);
+                  _results1.push(wireframe.geometry.vertices[idx].z = tube * Math.sin(v));
+                }
+                return _results1;
+              }).call(_this));
+            }
+            return _results;
+          };
+          return null;
+        });
+      })(this)();
+      k = Math.max(160 / Math.max(this.size.x * 0.3, this.size.y), 16);
+      this.textGeometryGen = util.textGeometryGen(k, 8, true);
       this.objects = (function() {
         var _i, _ref, _results;
         _results = [];
-        for (y = _i = 0, _ref = size.y; 0 <= _ref ? _i < _ref : _i > _ref; y = 0 <= _ref ? ++_i : --_i) {
-          _results.push((function() {
+        for (x = _i = 0, _ref = this.size.x; 0 <= _ref ? _i < _ref : _i > _ref; x = 0 <= _ref ? ++_i : --_i) {
+          xrate = this.size.xrate(x);
+          base = new THREE.Object3D();
+          base.position.set(Math.cos(xrate) * this.r2, Math.sin(xrate) * this.r2, 0);
+          base.rotation.z = xrate;
+          this.add(base);
+          base.wheel = new THREE.Object3D();
+          base.add(base.wheel);
+          if (rotateSpeed !== 0) {
+            base.wheel.update = function() {
+              return this.rotation.y += rotateSpeed;
+            };
+          }
+          base.ls = (function() {
             var _j, _ref1, _results1;
             _results1 = [];
-            for (x = _j = 0, _ref1 = size.x; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; x = 0 <= _ref1 ? ++_j : --_j) {
+            for (y = _j = 0, _ref1 = this.size.y; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
               if (program[y][x] === " ") {
                 _results1.push(null);
               } else {
-                ret = util.flatMesh(this.textGeometryGen(program[y][x]), 0xffffff);
-                ret.material.transparent = true;
-                ret.applyMatrix(this.matrices[y][x]);
-                this.add(ret);
-                _results1.push(ret);
+                _results1.push(this.makeCell(program[y][x], y, 0, base.wheel));
               }
             }
             return _results1;
-          }).call(this));
+          }).call(this);
+          _results.push(base);
         }
         return _results;
       }).call(this);
@@ -604,32 +633,61 @@
       return this.rotation.y += 0.003;
     };
 
+    Torus.prototype.makeCell = function(text, y, offset, wheel) {
+      var ret;
+      ret = util.flatMesh(this.textGeometryGen(text), 0xffffff);
+      ret.material.transparent = true;
+      ret.offset_ = offset;
+      ret.y_ = y;
+      this.updateCell(ret);
+      wheel.add(ret);
+      return ret;
+    };
+
+    Torus.prototype.updateCell = function(cell) {
+      var yrate;
+      yrate = this.size.yrate(cell.y_);
+      cell.position.set(Math.sin(yrate) * (this.r1 - cell.offset_), 0, Math.cos(yrate) * (this.r1 - cell.offset_));
+      cell.rotation.y = yrate;
+      return cell.rotation.z = Math.PI / 2;
+    };
+
     Torus.prototype.readCode = function(y, x) {};
 
     Torus.prototype.writeCode = function(y, x, to) {
-      var obj, speed, tmp, vec;
-      vec = new THREE.Vector3(0, 0, 3).applyMatrix4(this.matrices[y][x].direction);
-      speed = 0.1;
-      if (this.objects[y][x] != null) {
-        obj = this.objects[y][x];
+      var base, obj, opSpeed, speed, tmp;
+      speed = 3;
+      opSpeed = 0.05;
+      base = this.objects[x];
+      if (base.ls[y] != null) {
+        obj = base.ls[y];
         obj.update = (function(_this) {
           return function() {
-            obj.material.opacity -= speed;
-            obj.position.add(vec);
+            obj.material.opacity -= opSpeed;
+            obj.offset_ -= speed;
+            _this.updateCell(obj);
             if (obj.material.opacity <= 0) {
-              return _this.remove(obj);
+              return base.wheel.remove(obj);
             }
           };
         })(this);
       }
-      return this.objects[y][x] = to === " " ? null : (tmp = util.flatMesh(this.textGeometryGen(to), 0xffffff), tmp.material.transparent = true, tmp.material.opacity = 0, tmp.applyMatrix(this.matrices[y][x]), tmp.position.sub(vec.clone().multiplyScalar(1 / speed)), this.add(tmp), tmp.update = function() {
-        tmp.position.add(vec);
-        tmp.material.opacity += speed;
-        if (tmp.material.opacity >= 1) {
-          tmp.material.opacity = 1;
-          return delete tmp.update;
-        }
-      }, tmp);
+      base.ls[y] = to === " " ? null : this.makeCell(to, y, speed / opSpeed, base.wheel);
+      if (base.ls[y] != null) {
+        tmp = base.ls[y];
+        tmp.material.opacity = 0;
+        return tmp.update = (function(_this) {
+          return function() {
+            tmp.material.opacity += opSpeed;
+            tmp.offset_ -= speed;
+            _this.updateCell(tmp);
+            if (tmp.material.opacity >= 1) {
+              tmp.material.opacity = 1;
+              return delete tmp.update;
+            }
+          };
+        })(this);
+      }
     };
 
     return Torus;

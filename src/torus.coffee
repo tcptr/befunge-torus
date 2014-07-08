@@ -1,45 +1,68 @@
 class Torus extends THREE.Object3D
   constructor: (program) ->
     super()
-    size = x: program[0].length, y: program.length
 
-    r1 = Math.max(16, size.y) * 2.7
-    r2 = Math.max(40, size.x) * 1.7 + r1
+    @size =
+      x: program[0].length
+      y: program.length
+      xrate: (i) -> Math.PI * 2 * i / @x
+      yrate: (i) -> Math.PI * 2 * i / @y
 
-    k = Math.max(160 / Math.max(size.x * 0.3, size.y), 16)
+    @r1 = Math.max(16, @size.y) * 2.7
+    @r2 = Math.max(40, @size.x) * 1.7 + @r1
 
-    mesh = util.flatMesh new THREE.TorusGeometry(r2, r1 - 15, size.y, size.x), 0xffffff
-    mesh.material.wireframe = true
-    mesh.material.opacity = 0.3
-    mesh.material.transparent = true
-    @add mesh
+    rotateSpeed = Math.PI * 0.001
 
+    do =>
+      tube = @r1 - 15
+
+      # torus wireframe
+      wireframe = util.flatMesh new THREE.TorusGeometry(@r2, tube, @size.y, @size.x), 0xffffff
+      wireframe.material.wireframe = true
+      wireframe.material.opacity = 0.3
+      wireframe.material.transparent = true
+      @add wireframe
+
+      # rotate wireframe
+      wireframe.offset_ = Math.PI * 2 / @size.y
+      wireframe.update = =>
+        delete wireframe.update if rotateSpeed == 0
+        wireframe.offset_ -= rotateSpeed
+        wireframe.geometry.verticesNeedUpdate = true
+        for j in [0..@size.y]
+          for i in [0..@size.x]
+            u = i / @size.x * Math.PI * 2
+            v = j / @size.y * Math.PI * 2 + wireframe.offset_
+
+            idx = j * (@size.x + 1) + i
+            wireframe.geometry.vertices[idx].x = ( @r2 + tube * Math.cos( v ) ) * Math.cos( u )
+            wireframe.geometry.vertices[idx].y = ( @r2 + tube * Math.cos( v ) ) * Math.sin( u )
+            wireframe.geometry.vertices[idx].z =  tube * Math.sin( v )
+
+      null
+
+    k = Math.max(160 / Math.max(@size.x * 0.3, @size.y), 16)
     @textGeometryGen = util.textGeometryGen k, 8, true
 
-    @matrices = for y in [0...size.y]
-      yrate = Math.PI * 2 * y / size.y
-      for x in [0...size.x]
-        xrate = Math.PI * 2 * x / size.x
-        direction = new THREE.Matrix4().makeRotationZ(xrate)
-            .multiply new THREE.Matrix4().makeRotationY(yrate)
+    @objects = for x in [0...@size.x]
+      xrate = @size.xrate x
 
-        ret = new THREE.Matrix4().makeTranslation(Math.cos(xrate)*r2, Math.sin(xrate)*r2, 0)
-          .multiply direction
-          .multiply new THREE.Matrix4().makeTranslation(0, 0, r1)
-          .multiply new THREE.Matrix4().makeRotationZ(Math.PI/2)
-        ret.direction = direction
-        ret
+      base = new THREE.Object3D()
+      base.position.set Math.cos(xrate)*@r2, Math.sin(xrate)*@r2, 0
+      base.rotation.z = xrate
+      @add base
 
-    @objects = for y in [0...size.y]
-      for x in [0...size.x]
-        if program[y][x] == " "
-          null
-        else
-          ret = util.flatMesh @textGeometryGen(program[y][x]), 0xffffff
-          ret.material.transparent = true
-          ret.applyMatrix @matrices[y][x]
-          @add ret
-          ret
+      base.wheel = new THREE.Object3D()
+      base.add base.wheel
+
+      # rotate objects
+      if rotateSpeed != 0
+        base.wheel.update = -> @rotation.y += rotateSpeed
+
+      base.ls = for y in [0...@size.y]
+        if program[y][x] == " " then null else @makeCell program[y][x], y, 0, base.wheel
+
+      base
 
     # TODO reduce drawcall
 
@@ -47,36 +70,52 @@ class Torus extends THREE.Object3D
     @rotation.x += 0.003
     @rotation.y += 0.003
 
+  makeCell: (text, y, offset, wheel) ->
+    ret = util.flatMesh @textGeometryGen(text), 0xffffff
+    ret.material.transparent = true
+    ret.offset_ = offset
+    ret.y_ = y
+    @updateCell ret
+    wheel.add ret
+    ret
+
+  updateCell: (cell) ->
+    yrate = @size.yrate cell.y_
+    cell.position.set Math.sin(yrate)*(@r1 - cell.offset_), 0, Math.cos(yrate)*(@r1 - cell.offset_)
+    cell.rotation.y = yrate
+    cell.rotation.z = Math.PI/2
+
   readCode: (y, x) ->
     # nothing to do
 
   writeCode: (y, x, to) ->
-    vec = new THREE.Vector3(0, 0, 3).applyMatrix4(@matrices[y][x].direction)
-    speed = 0.1
+    speed = 3
+    opSpeed = 0.05
+    base = @objects[x]
 
-    if @objects[y][x]?
-      obj = @objects[y][x]
+    # fade out the previous character
+    if base.ls[y]?
+      obj = base.ls[y]
       obj.update = =>
-        obj.material.opacity -= speed
-        obj.position.add vec
-        @remove obj if obj.material.opacity <= 0
+        obj.material.opacity -= opSpeed
+        obj.offset_ -= speed
+        @updateCell obj
 
-    @objects[y][x] = if to == " "
-      null
-    else
-      tmp = util.flatMesh @textGeometryGen(to), 0xffffff
-      tmp.material.transparent = true
+        if obj.material.opacity <= 0
+          base.wheel.remove obj
+
+    base.ls[y] = if to == " " then null else @makeCell to, y, speed/opSpeed, base.wheel
+
+    # fade in the new character
+    if base.ls[y]?
+      tmp = base.ls[y]
       tmp.material.opacity = 0
-      tmp.applyMatrix @matrices[y][x]
-      tmp.position.sub vec.clone().multiplyScalar(1 / speed)
-      @add tmp
+      tmp.update = =>
+        tmp.material.opacity += opSpeed
+        tmp.offset_ -= speed
+        @updateCell tmp
 
-      tmp.update = ->
-        tmp.position.add vec
-        tmp.material.opacity += speed
         if tmp.material.opacity >= 1
           tmp.material.opacity = 1
           delete tmp.update
-
-      tmp
 
