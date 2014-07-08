@@ -14,19 +14,6 @@ class Torus extends THREE.Object3D
     rotateSpeed = Math.PI * 0.001
 
     do =>
-      geometry = new THREE.Geometry()
-      r = -> Math.random() * 600 - 300
-      for i in [0..2000]
-        geometry.vertices.push new THREE.Vector3(r(), r(), r())
-      
-      material = new THREE.ParticleBasicMaterial
-        size: 5, color: 0x6699ff
-        blending: THREE.AdditiveBlending, transparent: true, depthTest: false
-      
-      mesh = new THREE.ParticleSystem geometry, material
-      @add mesh
-
-    do =>
       tube = @r1 - 15
 
       # torus wireframe

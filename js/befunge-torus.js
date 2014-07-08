@@ -356,7 +356,7 @@
 
     Main.prototype.update = function() {
       var _, _i;
-      for (_ = _i = 0; _i < 10; _ = ++_i) {
+      for (_ = _i = 0; _i < 30; _ = ++_i) {
         if (this.end) {
           return;
         }
@@ -554,27 +554,6 @@
       this.r1 = Math.max(16, this.size.y) * 2.7;
       this.r2 = Math.max(40, this.size.x) * 1.7 + this.r1;
       rotateSpeed = Math.PI * 0.001;
-      (function(_this) {
-        return (function() {
-          var geometry, i, material, mesh, r, _i;
-          geometry = new THREE.Geometry();
-          r = function() {
-            return Math.random() * 600 - 300;
-          };
-          for (i = _i = 0; _i <= 2000; i = ++_i) {
-            geometry.vertices.push(new THREE.Vector3(r(), r(), r()));
-          }
-          material = new THREE.ParticleBasicMaterial({
-            size: 5,
-            color: 0x6699ff,
-            blending: THREE.AdditiveBlending,
-            transparent: true,
-            depthTest: false
-          });
-          mesh = new THREE.ParticleSystem(geometry, material);
-          return _this.add(mesh);
-        });
-      })(this)();
       (function(_this) {
         return (function() {
           var tube, wireframe;
