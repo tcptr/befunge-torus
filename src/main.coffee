@@ -1,7 +1,9 @@
 class Main extends BefungeDelegate
-  constructor: (code, inputChar, inputNumber) ->
+  constructor: (code, inputChar, inputNumber, stepPerFrame) ->
     @inputChar = inputChar.split("")
     @inputNumber = inputNumber.split(",")
+    @stepPerFrame = Number(stepPerFrame)
+    @count = 0
 
     @world = new World
     @befunge = new Befunge code, @
@@ -9,11 +11,24 @@ class Main extends BefungeDelegate
     @root = new THREE.Object3D
     @world.scene.add @root
 
-    @torus = new Torus @befunge.program
+    torusOpSpeed =
+      if @stepPerFrame <= 5 then 0.02
+      else if @stepPerFrame <= 100 then 0.05 else 0.10
+
+    @torus = new Torus @befunge.program, torusOpSpeed
     @torus.position.x = -50
     @root.add @torus
 
-    @stack = new Stack
+    @stack =
+      if @stepPerFrame <= 20
+        stackOpSpeed =
+          if @stepPerFrame <= 5 then 0.1
+          else if @stepPerFrame <= 10 then 0.2 else 0.5
+
+        new StackDynamic stackOpSpeed
+      else
+        new Stack
+
     @torus.add @stack
 
     @output = new Output 14
@@ -32,9 +47,12 @@ class Main extends BefungeDelegate
     @root.update = @update
 
   update: =>
-    for _ in [0...30]
+    @count += @stepPerFrame
+
+    while @count >= 1
       return if @end
       @end = @befunge.doStep()
+      @count -= 1
 
   putNum: (n) ->
     @output.insert "#{n} "
@@ -65,5 +83,4 @@ class Main extends BefungeDelegate
       @inputChar.shift()
     else
       "\n"
-
 

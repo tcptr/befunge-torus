@@ -1,8 +1,9 @@
 (function() {
-  var Befunge, BefungeDelegate, Direction, Examples, Main, Output, Stack, State, Torus, Wheel, World, util,
+  var Befunge, BefungeDelegate, Direction, Examples, Main, Output, Stack, StackDynamic, State, Torus, Wheel, World, util,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    __slice = [].slice;
 
   Direction = {
     Up: 0,
@@ -312,7 +313,7 @@
       return $('#code').val(Examples[$(this).attr('href')]);
     });
     return $('#launch').on('click', function() {
-      new Main($('#code').val(), $('#inputchar').val(), $('#inputnumber').val());
+      new Main($('#code').val(), $('#inputchar').val(), $('#inputnumber').val(), $('#step').val());
       $('#entry').remove();
       $('#back').show();
       return false;
@@ -330,19 +331,22 @@
   Main = (function(_super) {
     __extends(Main, _super);
 
-    function Main(code, inputChar, inputNumber) {
+    function Main(code, inputChar, inputNumber, stepPerFrame) {
       this.update = __bind(this.update, this);
-      var info, light, _i, _len, _ref, _ref1;
+      var info, light, stackOpSpeed, torusOpSpeed, _i, _len, _ref, _ref1;
       this.inputChar = inputChar.split("");
       this.inputNumber = inputNumber.split(",");
+      this.stepPerFrame = Number(stepPerFrame);
+      this.count = 0;
       this.world = new World;
       this.befunge = new Befunge(code, this);
       this.root = new THREE.Object3D;
       this.world.scene.add(this.root);
-      this.torus = new Torus(this.befunge.program);
+      torusOpSpeed = this.stepPerFrame <= 5 ? 0.02 : this.stepPerFrame <= 100 ? 0.05 : 0.10;
+      this.torus = new Torus(this.befunge.program, torusOpSpeed);
       this.torus.position.x = -50;
       this.root.add(this.torus);
-      this.stack = new Stack;
+      this.stack = this.stepPerFrame <= 20 ? (stackOpSpeed = this.stepPerFrame <= 5 ? 0.1 : this.stepPerFrame <= 10 ? 0.2 : 0.5, new StackDynamic(stackOpSpeed)) : new Stack;
       this.torus.add(this.stack);
       this.output = new Output(14);
       this.output.position.x = 100;
@@ -361,12 +365,13 @@
     }
 
     Main.prototype.update = function() {
-      var _, _i;
-      for (_ = _i = 0; _i < 30; _ = ++_i) {
+      this.count += this.stepPerFrame;
+      while (this.count >= 1) {
         if (this.end) {
           return;
         }
         this.end = this.befunge.doStep();
+        this.count -= 1;
       }
     };
 
@@ -504,107 +509,114 @@
 
     function Stack() {
       Stack.__super__.constructor.call(this);
-      this.textGeometryGen = util.textGeometryGen(20, 10, true);
+      this.span = 30;
+      this.textFactory = util.textFactoryGen(20, 10, true);
+      this.pool = new THREE.Object3D;
+      this.add(this.pool);
       this.list = [];
     }
 
     Stack.prototype.push = function(n) {
-      var obj;
-      obj = util.flatMesh(this.textGeometryGen(String(n)), 0xffffff);
-      this.list.push(obj);
-      this.updatePosition();
-      return this.add(obj);
+      var mesh;
+      mesh = this.textFactory.make(String(n));
+      mesh.position.set(0, 0, this.list.length * this.span);
+      this.pool.add(mesh);
+      this.list.push(mesh);
+      return mesh;
     };
 
     Stack.prototype.pop = function() {
-      var obj;
-      obj = this.list.pop();
-      this.updatePosition();
-      return this.remove(obj);
+      var mesh;
+      mesh = this.list.pop();
+      this.textFactory.dispose(mesh);
+      return this.pool.remove(mesh);
     };
 
-    Stack.prototype.updatePosition = function() {
-      var i, obj, _i, _len, _ref, _results;
-      _ref = this.list;
-      _results = [];
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        obj = _ref[i];
-        _results.push(obj.position.z = 30 * i - (this.list.length - 1) * 15);
-      }
-      return _results;
+    Stack.prototype.update = function() {
+      return this.pool.position.z = -this.span * (this.list.length - 1) / 2;
     };
 
     return Stack;
 
   })(THREE.Object3D);
 
-  Wheel = (function(_super) {
-    __extends(Wheel, _super);
+  StackDynamic = (function(_super) {
+    __extends(StackDynamic, _super);
 
-    function Wheel(rotateSpeed) {
-      this.rotateSpeed = rotateSpeed;
-      Wheel.__super__.constructor.call(this);
-      this.payload = new THREE.Object3D();
-      this.add(this.payload);
-      this.stash = null;
-      this.currentRotation = 0;
-      this.moving = 0;
+    function StackDynamic(opSpeed) {
+      this.opSpeed = opSpeed;
+      StackDynamic.__super__.constructor.call(this);
+      this.speed = 15;
+      this.stSpeed = 5;
     }
 
-    Wheel.prototype.beginAnimation = function() {
-      this.moving += 1;
-      return this.makeDynamic();
-    };
-
-    Wheel.prototype.endAnimation = function() {
-      return this.moving -= 1;
-    };
-
-    Wheel.prototype.makeDynamic = function() {
-      if (!this.stash) {
+    StackDynamic.prototype.update = function() {
+      var to;
+      if (this.list.length === 0) {
+        this.pool.position.z = 0;
         return;
       }
-      this.remove(this.payload);
-      this.payload = this.stash;
-      this.stash = null;
-      return this.add(this.payload);
+      to = -this.span * (this.list.length - 1) / 2;
+      return this.pool.position.z = Math.abs(this.pool.position.z - to) < this.stSpeed ? to : this.pool.position.z < to ? this.pool.position.z + this.stSpeed : this.pool.position.z - this.stSpeed;
     };
 
-    Wheel.prototype.makeStatic = function() {
-      var g, geo, _i, _len, _ref;
-      if (this.stash) {
-        return;
-      }
-      this.remove(this.payload);
-      this.stash = this.payload;
-      geo = new THREE.Geometry();
-      _ref = this.stash.children;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        g = _ref[_i];
-        g.matrixAutoUpdate && g.updateMatrix();
-        geo.merge(g.geometry, g.matrix);
-      }
-      this.payload = util.flatMesh(geo, 0xffffff);
-      return this.add(this.payload);
+    StackDynamic.prototype.push = function(n) {
+      var mesh;
+      mesh = StackDynamic.__super__.push.call(this, n);
+      mesh.material.transparent = true;
+      mesh.material.opacity = 0;
+      mesh.position.z += this.speed / this.opSpeed;
+      return mesh.update = (function(_this) {
+        return function() {
+          if (mesh.material.opacity >= 1) {
+            delete mesh.update;
+          }
+          mesh.material.opacity += _this.opSpeed;
+          return mesh.position.z -= _this.speed;
+        };
+      })(this);
     };
 
-    Wheel.prototype.update = function() {
-      if (this.moving === 0) {
-        this.makeStatic();
-      }
-      this.currentRotation += this.rotateSpeed;
-      return this.payload.rotation.y = this.currentRotation;
+    StackDynamic.prototype.pop = function() {
+      var count, limit, mesh, r, vec;
+      mesh = this.list.pop();
+      r = Math.random() * Math.PI * 2;
+      vec = new THREE.Vector3(Math.cos(r) * this.speed, Math.sin(r) * this.speed, 0);
+      limit = this.span / this.speed * 1.5;
+      count = 0;
+      return mesh.update = (function(_this) {
+        return function() {
+          if (count === 0 && mesh.material.opacity < 1) {
+            mesh.material.opacity += _this.opSpeed;
+            mesh.position.z -= _this.speed;
+            return;
+          }
+          count += 1;
+          if (count <= limit) {
+            mesh.position.add(vec);
+          } else {
+            mesh.position.z -= _this.speed;
+          }
+          mesh.material.opacity -= _this.opSpeed;
+          if (mesh.material.opacity <= 0) {
+            delete mesh.update;
+            _this.textFactory.dispose(mesh);
+            return _this.pool.remove(mesh);
+          }
+        };
+      })(this);
     };
 
-    return Wheel;
+    return StackDynamic;
 
-  })(THREE.Object3D);
+  })(Stack);
 
   Torus = (function(_super) {
     __extends(Torus, _super);
 
-    function Torus(program) {
+    function Torus(program, opSpeed) {
       var fontSize, rotateSpeed, wheel, x, xrate, y;
+      this.opSpeed = opSpeed;
       Torus.__super__.constructor.call(this);
       this.size = {
         x: program[0].length,
@@ -612,9 +624,8 @@
       };
       this.r1 = Math.max(16, this.size.y) * 2.7;
       this.r2 = Math.max(40, this.size.x) * 1.7 + this.r1;
-      this.cellCache = {};
       fontSize = Math.max(160 / Math.max(this.size.x * 0.3, this.size.y), 16);
-      this.textGeometryGen = util.textGeometryGen(fontSize, 8, true);
+      this.textFactory = util.textFactoryGen(fontSize, 8, true);
       rotateSpeed = Math.PI * 0.001;
       (function(_this) {
         return (function() {
@@ -680,9 +691,9 @@
     };
 
     Torus.prototype.makeCell = function(text, y, offset, wheel) {
-      var cell, t, _ref;
-      cell = ((_ref = this.cellCache[text]) != null ? _ref.length : void 0) > 0 ? this.cellCache[text].shift() : (t = util.flatMesh(this.textGeometryGen(text), 0xffffff), t.material.transparent = true, t);
-      cell.text_ = text;
+      var cell;
+      cell = this.textFactory.make(text);
+      cell.material.transparent = true;
       cell.offset_ = offset;
       cell.y_ = y;
       this.updateCell(cell);
@@ -700,11 +711,7 @@
     };
 
     Torus.prototype.removeCell = function(cell, wheel) {
-      var _base, _name;
-      if ((_base = this.cellCache)[_name = cell.text_] == null) {
-        _base[_name] = [];
-      }
-      this.cellCache[cell.text_].push(cell);
+      this.textFactory.dispose(cell);
       wheel.makeDynamic();
       return wheel.payload.remove(cell);
     };
@@ -712,16 +719,15 @@
     Torus.prototype.readCode = function(y, x) {};
 
     Torus.prototype.writeCode = function(y, x, to) {
-      var obj, opSpeed, speed, tmp, wheel;
+      var obj, speed, tmp, wheel;
       speed = 3;
-      opSpeed = 0.05;
       wheel = this.wheels[x];
       if (wheel.ls[y] != null) {
         wheel.beginAnimation();
         obj = wheel.ls[y];
         obj.update = (function(_this) {
           return function() {
-            obj.material.opacity -= opSpeed;
+            obj.material.opacity -= _this.opSpeed;
             obj.offset_ -= speed;
             _this.updateCell(obj);
             if (obj.material.opacity <= 0) {
@@ -732,14 +738,14 @@
           };
         })(this);
       }
-      wheel.ls[y] = to === " " ? null : this.makeCell(to, y, speed / opSpeed, wheel);
+      wheel.ls[y] = to === " " ? null : this.makeCell(to, y, speed / this.opSpeed, wheel);
       if (wheel.ls[y] != null) {
         wheel.beginAnimation();
         tmp = wheel.ls[y];
         tmp.material.opacity = 0;
         return tmp.update = (function(_this) {
           return function() {
-            tmp.material.opacity += opSpeed;
+            tmp.material.opacity += _this.opSpeed;
             tmp.offset_ -= speed;
             _this.updateCell(tmp);
             if (tmp.material.opacity >= 1) {
@@ -753,6 +759,68 @@
     };
 
     return Torus;
+
+  })(THREE.Object3D);
+
+  Wheel = (function(_super) {
+    __extends(Wheel, _super);
+
+    function Wheel(rotateSpeed) {
+      this.rotateSpeed = rotateSpeed;
+      Wheel.__super__.constructor.call(this);
+      this.payload = new THREE.Object3D();
+      this.add(this.payload);
+      this.stash = null;
+      this.currentRotation = 0;
+      this.moving = 0;
+    }
+
+    Wheel.prototype.beginAnimation = function() {
+      this.moving += 1;
+      return this.makeDynamic();
+    };
+
+    Wheel.prototype.endAnimation = function() {
+      return this.moving -= 1;
+    };
+
+    Wheel.prototype.makeDynamic = function() {
+      if (!this.stash) {
+        return;
+      }
+      this.remove(this.payload);
+      this.payload = this.stash;
+      this.stash = null;
+      return this.add(this.payload);
+    };
+
+    Wheel.prototype.makeStatic = function() {
+      var g, geo, _i, _len, _ref;
+      if (this.stash) {
+        return;
+      }
+      this.remove(this.payload);
+      this.stash = this.payload;
+      geo = new THREE.Geometry();
+      _ref = this.stash.children;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        g = _ref[_i];
+        g.matrixAutoUpdate && g.updateMatrix();
+        geo.merge(g.geometry, g.matrix);
+      }
+      this.payload = util.flatMesh(geo, 0xffffff);
+      return this.add(this.payload);
+    };
+
+    Wheel.prototype.update = function() {
+      if (this.moving === 0) {
+        this.makeStatic();
+      }
+      this.currentRotation += this.rotateSpeed;
+      return this.payload.rotation.y = this.currentRotation;
+    };
+
+    return Wheel;
 
   })(THREE.Object3D);
 
@@ -822,6 +890,37 @@
         }
         return ret;
       };
+    },
+    factoryGen: function(maker) {
+      var cache;
+      cache = {};
+      return {
+        make: function(key) {
+          var ret, _ref;
+          if (((_ref = cache[key]) != null ? _ref.length : void 0) > 0) {
+            return cache[key].shift();
+          } else {
+            ret = maker(key);
+            ret.key_ = key;
+            return ret;
+          }
+        },
+        dispose: function(m) {
+          var _name;
+          if (cache[_name = m.key_] == null) {
+            cache[_name] = [];
+          }
+          return cache[m.key_].push(m);
+        }
+      };
+    },
+    textFactoryGen: function() {
+      var geometryGen, opts;
+      opts = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      geometryGen = util.textGeometryGen.apply(util, opts);
+      return util.factoryGen(function(text) {
+        return util.flatMesh(geometryGen(text), 0xffffff);
+      });
     }
   };
 

@@ -5,7 +5,7 @@ $ ->
     $('#code').val Examples[$(this).attr('href')]
 
   $('#launch').on 'click', ->
-    new Main $('#code').val(), $('#inputchar').val(), $('#inputnumber').val()
+    new Main $('#code').val(), $('#inputchar').val(), $('#inputnumber').val(), $('#step').val()
     $('#entry').remove()
     $('#back').show()
     false

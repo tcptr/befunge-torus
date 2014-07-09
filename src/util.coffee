@@ -32,3 +32,24 @@ util =
 
       ret
 
+  factoryGen: (maker) ->
+    cache = {}
+
+    {
+      make: (key) ->
+        if cache[key]?.length > 0
+          cache[key].shift()
+        else
+          ret = maker key
+          ret.key_ = key
+          ret
+      dispose: (m) ->
+        cache[m.key_] ?= []
+        cache[m.key_].push m
+    }
+
+  textFactoryGen: (opts...) ->
+    geometryGen = util.textGeometryGen opts...
+    util.factoryGen (text) -> util.flatMesh geometryGen(text), 0xffffff
+
+

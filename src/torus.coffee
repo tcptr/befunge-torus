@@ -1,56 +1,13 @@
-class Wheel extends THREE.Object3D
-  constructor: (@rotateSpeed) ->
-    super()
-    @payload = new THREE.Object3D()
-    @add @payload
-    @stash = null
-    @currentRotation = 0
-    @moving = 0
-
-  beginAnimation: ->
-    @moving += 1
-    @makeDynamic()
-
-  endAnimation: ->
-    @moving -= 1
-
-  makeDynamic: ->
-    return if not @stash
-    @remove @payload
-    @payload = @stash
-    @stash = null
-    @add @payload
-
-  makeStatic: ->
-    return if @stash
-    @remove @payload
-    @stash = @payload
-
-    geo = new THREE.Geometry()
-    for g in @stash.children
-      g.matrixAutoUpdate && g.updateMatrix()
-      geo.merge g.geometry, g.matrix
-
-    @payload = util.flatMesh geo, 0xffffff
-    @add @payload
-
-  update: ->
-    @makeStatic() if @moving == 0
-    @currentRotation += @rotateSpeed
-    @payload.rotation.y = @currentRotation
-
 class Torus extends THREE.Object3D
-  constructor: (program) ->
+  constructor: (program, @opSpeed) ->
     super()
 
     @size = x: program[0].length, y: program.length
     @r1 = Math.max(16, @size.y) * 2.7
     @r2 = Math.max(40, @size.x) * 1.7 + @r1
 
-    @cellCache = {}
-
     fontSize = Math.max(160 / Math.max(@size.x * 0.3, @size.y), 16)
-    @textGeometryGen = util.textGeometryGen fontSize, 8, true
+    @textFactory = util.textFactoryGen fontSize, 8, true
 
     rotateSpeed = Math.PI * 0.001
 
@@ -100,13 +57,8 @@ class Torus extends THREE.Object3D
     @rotation.y += 0.003
 
   makeCell: (text, y, offset, wheel) ->
-    cell = if @cellCache[text]?.length > 0
-      @cellCache[text].shift()
-    else
-      t = util.flatMesh @textGeometryGen(text), 0xffffff
-      t.material.transparent = true
-      t
-    cell.text_ = text
+    cell = @textFactory.make text
+    cell.material.transparent = true
     cell.offset_ = offset
     cell.y_ = y
     @updateCell cell
@@ -121,8 +73,7 @@ class Torus extends THREE.Object3D
     cell.rotation.z = Math.PI/2
 
   removeCell: (cell, wheel) ->
-    @cellCache[cell.text_] ?= []
-    @cellCache[cell.text_].push cell
+    @textFactory.dispose cell
     wheel.makeDynamic()
     wheel.payload.remove cell
 
@@ -131,7 +82,6 @@ class Torus extends THREE.Object3D
 
   writeCode: (y, x, to) ->
     speed = 3
-    opSpeed = 0.05
     wheel = @wheels[x]
 
     # fade out the previous character
@@ -140,7 +90,7 @@ class Torus extends THREE.Object3D
 
       obj = wheel.ls[y]
       obj.update = =>
-        obj.material.opacity -= opSpeed
+        obj.material.opacity -= @opSpeed
         obj.offset_ -= speed
         @updateCell obj
 
@@ -149,7 +99,7 @@ class Torus extends THREE.Object3D
           delete obj.update
           wheel.endAnimation()
 
-    wheel.ls[y] = if to == " " then null else @makeCell to, y, speed/opSpeed, wheel
+    wheel.ls[y] = if to == " " then null else @makeCell to, y, speed/@opSpeed, wheel
 
     # fade in the new character
     if wheel.ls[y]?
@@ -158,7 +108,7 @@ class Torus extends THREE.Object3D
       tmp = wheel.ls[y]
       tmp.material.opacity = 0
       tmp.update = =>
-        tmp.material.opacity += opSpeed
+        tmp.material.opacity += @opSpeed
         tmp.offset_ -= speed
         @updateCell tmp
 
@@ -166,4 +116,45 @@ class Torus extends THREE.Object3D
           tmp.material.opacity = 1
           delete tmp.update
           wheel.endAnimation()
+
+class Wheel extends THREE.Object3D
+  constructor: (@rotateSpeed) ->
+    super()
+    @payload = new THREE.Object3D()
+    @add @payload
+    @stash = null
+    @currentRotation = 0
+    @moving = 0
+
+  beginAnimation: ->
+    @moving += 1
+    @makeDynamic()
+
+  endAnimation: ->
+    @moving -= 1
+
+  makeDynamic: ->
+    return if not @stash
+    @remove @payload
+    @payload = @stash
+    @stash = null
+    @add @payload
+
+  makeStatic: ->
+    return if @stash
+    @remove @payload
+    @stash = @payload
+
+    geo = new THREE.Geometry()
+    for g in @stash.children
+      g.matrixAutoUpdate && g.updateMatrix()
+      geo.merge g.geometry, g.matrix
+
+    @payload = util.flatMesh geo, 0xffffff
+    @add @payload
+
+  update: ->
+    @makeStatic() if @moving == 0
+    @currentRotation += @rotateSpeed
+    @payload.rotation.y = @currentRotation
 
