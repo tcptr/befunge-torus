@@ -10,21 +10,24 @@ class Main extends BefungeDelegate
     @world.scene.add @root
 
     @torus = new Torus @befunge.program
+    @torus.position.x = -50
     @root.add @torus
 
     @stack = new Stack
     @torus.add @stack
 
-    @output = new Output
+    @output = new Output 14
+    @output.position.x = 100
+    @output.position.y = 200
+
+    @output.rotation.x = Math.PI * 0.3
+    @output.rotation.y = -Math.PI * 0.15
     @root.add @output
 
-    # TODO
-    light = new THREE.PointLight 0x3366ff, 3, 3000
-    light.position.x = -500
-    @world.scene.add light
-    light = new THREE.PointLight 0xff6633, 3, 3000
-    light.position.z = 500
-    @world.scene.add light
+    for info in [[0x3366ff, -500, 0, 0], [0xff6633, 0, 0, 500]]
+      light = new THREE.PointLight info[0], 3, 3000
+      light.position.set info[1..3]...
+      @root.add light
 
     @root.update = @update
 

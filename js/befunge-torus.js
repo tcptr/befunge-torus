@@ -1,5 +1,5 @@
 (function() {
-  var Befunge, BefungeDelegate, Direction, Examples, Main, Output, Stack, State, Torus, World, util,
+  var Befunge, BefungeDelegate, Direction, Examples, Main, Output, Stack, State, Torus, Wheel, World, util,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -320,10 +320,10 @@
   });
 
   Examples = {
-    "#hello": "v @_       v\n>0\"!dlroW\"v \nv  :#     < \n>\" ,olleH\" v\n   ^       <",
+    "#hello": "v @_       v\n>0\"!dlroW\"v\nv  :#     <\n>\" ,olleH\" v\n   ^       <",
     "#fizzbuzz": ">1+\".\"05pv\n,        >:3%!v\n+    v,,\"Fizz\"_v\n5    >,,\"$\"05p v\n5         v!%5:<\n.v,,\"Buzz\"_v\n:>,,\"$\"05p v\n^_@#-+\"22\":<",
     "#lifegame": "v>>31g> ::51gg:2v++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n9p BXY|-+<v3*89<%+ *                                                      *   +\n21 >98 *7^>+\\-0|<+ *                                                     *    +\n*5 ^:+ 1pg15\\,:< + *                                                     ***  +\n10^  <>$25*,51g1v+                                                            +\n-^ p<| -*46p15:+<+                                                            +\n> 31^> 151p>92*4v+                                                            +\n ^_ \".\",   ^ vp1<+                                                            +\n>v >41p      >0 v+                                                            +\n:5! vg-1g15-1g14<+                                                            +\n+1-+>+41g1-51gg+v+                                                            +\n1p-1vg+1g15-1g14<+                                                            +\ng61g>+41g51g1-g+v+                                                            +\n14*1v4+g+1g15g14<+                           * *                              +\n5>^4>1g1+51g1-g+v+                           * *                              +\n^ _^v4+gg15+1g14<+                           ***                              +\n>v! >1g1+51g1+g+v+                                                            +\ng8-v14/*25-*4*88<+                                                            +\n19+>g51gg\" \"- v  +                                                            +\n4*5  v<   v-2:_3v+                                                            +\n >^   |!-3_$  v<-+                                                            +\n^    < <      <|<+                                                         ***+\n>g51gp ^ >51gp^>v+                                                            +\n^14\"+\"<  ^g14\"!\"<++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
-    "#bottles": "5:*4*1-           >:1    v\n           v.:<\n           #  |:\\<       <     \n>v\"No more \"0 <          0     \n,:                       :     \n^_$        v             |!-1       <\n>v\"bottle\"0<      | :,*25<           \n,:           >\"s\"v@      \n^_$1-        |   ,\n>v\" of beer\"0<   <\n,:               >v                  \n^_$            :!|    \n>v\" on the wall\"0<\n,:                     >\".\"v\n^_$               >:2-!|\n                       >\",\">,25*,:  |\n>v\"Take one down, pass it around,\"0$<\n,:                                   \n^_$25*,1-      :2v",
+    "#bottles": "5:*4*1-           >:1    v\n           v.:<\n           #  |:\\<       <\n>v\"No more \"0 <          0\n,:                       :\n^_$        v             |!-1       <\n>v\"bottle\"0<      | :,*25<\n,:           >\"s\"v@\n^_$1-        |   ,\n>v\" of beer\"0<   <\n,:               >v\n^_$            :!|\n>v\" on the wall\"0<\n,:                     >\".\"v\n^_$               >:2-!|\n                       >\",\">,25*,:  |\n>v\"Take one down, pass it around,\"0$<\n,:\n^_$25*,1-      :2v",
     "#aturley": ">84*>:#v_55+\"ude.ub@yelruta\">:#,_@>188*+>\\02p\\12p\\:22p#v_$    55+,1-         v\n    ^  0 v +1\\                   _^#-+*<               >22g02g*\"_@\"*-!1- #v_v>\n       >:>::3g: ,\\188                  ^^               -1\\g21\\g22<p3\\\"_\":<\n________________________________@_________________________________^  p3\\\"@\":<"
   };
 
@@ -332,7 +332,7 @@
 
     function Main(code, inputChar, inputNumber) {
       this.update = __bind(this.update, this);
-      var light;
+      var info, light, _i, _len, _ref, _ref1;
       this.inputChar = inputChar.split("");
       this.inputNumber = inputNumber.split(",");
       this.world = new World;
@@ -340,17 +340,23 @@
       this.root = new THREE.Object3D;
       this.world.scene.add(this.root);
       this.torus = new Torus(this.befunge.program);
+      this.torus.position.x = -50;
       this.root.add(this.torus);
       this.stack = new Stack;
       this.torus.add(this.stack);
-      this.output = new Output;
+      this.output = new Output(14);
+      this.output.position.x = 100;
+      this.output.position.y = 200;
+      this.output.rotation.x = Math.PI * 0.3;
+      this.output.rotation.y = -Math.PI * 0.15;
       this.root.add(this.output);
-      light = new THREE.PointLight(0x3366ff, 3, 3000);
-      light.position.x = -500;
-      this.world.scene.add(light);
-      light = new THREE.PointLight(0xff6633, 3, 3000);
-      light.position.z = 500;
-      this.world.scene.add(light);
+      _ref = [[0x3366ff, -500, 0, 0], [0xff6633, 0, 0, 500]];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        info = _ref[_i];
+        light = new THREE.PointLight(info[0], 3, 3000);
+        (_ref1 = light.position).set.apply(_ref1, info.slice(1, 4));
+        this.root.add(light);
+      }
       this.root.update = this.update;
     }
 
@@ -411,26 +417,23 @@
   Output = (function(_super) {
     __extends(Output, _super);
 
-    function Output() {
-      var mesh;
+    function Output(height) {
+      var mesh, size;
+      this.height = height;
       Output.__super__.constructor.call(this);
-      this.height = 14;
       this.textGeometryGen = util.textGeometryGen(this.height, 8);
       this.cursor = {
         x: 0,
         y: -this.height - 2
       };
       this.tmpMatrix = new THREE.Matrix4();
-      this.position.x = 150;
-      this.position.y = 250;
-      this.rotation.x = Math.PI * 0.3;
-      this.rotation.y = -Math.PI * 0.15;
-      mesh = util.flatMesh(new THREE.PlaneGeometry(400, 400, 16, 16), 0xffffff);
+      size = 20;
+      mesh = util.flatMesh(new THREE.PlaneGeometry(this.height * size, this.height * size, size, size), 0xffffff);
       mesh.material.wireframe = true;
-      mesh.material.opacity = 0.3;
       mesh.material.transparent = true;
-      mesh.position.x = 180;
-      mesh.position.y = -180;
+      mesh.material.opacity = 0.5;
+      mesh.position.x = this.height * (size / 2 - 1);
+      mesh.position.y = -this.height * (size / 2 - 1);
       this.add(mesh);
       this.buf = "";
       this.currentLine = [];
@@ -453,7 +456,7 @@
       this.lines.push(mesh);
       this.buf = "";
       this.currentLine = [];
-      if (this.lines.length > 20) {
+      if (this.lines.length > 15) {
         this.cursor.y += this.height + 2;
         this.remove(this.lines.shift());
         _ref1 = this.lines;
@@ -535,94 +538,137 @@
 
   })(THREE.Object3D);
 
+  Wheel = (function(_super) {
+    __extends(Wheel, _super);
+
+    function Wheel(rotateSpeed) {
+      this.rotateSpeed = rotateSpeed;
+      Wheel.__super__.constructor.call(this);
+      this.payload = new THREE.Object3D();
+      this.add(this.payload);
+      this.stash = null;
+      this.currentRotation = 0;
+      this.moving = 0;
+    }
+
+    Wheel.prototype.beginAnimation = function() {
+      this.moving += 1;
+      return this.makeDynamic();
+    };
+
+    Wheel.prototype.endAnimation = function() {
+      return this.moving -= 1;
+    };
+
+    Wheel.prototype.makeDynamic = function() {
+      if (!this.stash) {
+        return;
+      }
+      this.remove(this.payload);
+      this.payload = this.stash;
+      this.stash = null;
+      return this.add(this.payload);
+    };
+
+    Wheel.prototype.makeStatic = function() {
+      var g, geo, _i, _len, _ref;
+      if (this.stash) {
+        return;
+      }
+      this.remove(this.payload);
+      this.stash = this.payload;
+      geo = new THREE.Geometry();
+      _ref = this.stash.children;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        g = _ref[_i];
+        g.matrixAutoUpdate && g.updateMatrix();
+        geo.merge(g.geometry, g.matrix);
+      }
+      this.payload = util.flatMesh(geo, 0xffffff);
+      return this.add(this.payload);
+    };
+
+    Wheel.prototype.update = function() {
+      if (this.moving === 0) {
+        this.makeStatic();
+      }
+      this.currentRotation += this.rotateSpeed;
+      return this.payload.rotation.y = this.currentRotation;
+    };
+
+    return Wheel;
+
+  })(THREE.Object3D);
+
   Torus = (function(_super) {
     __extends(Torus, _super);
 
     function Torus(program) {
-      var base, k, rotateSpeed, x, xrate, y;
+      var fontSize, rotateSpeed, wheel, x, xrate, y;
       Torus.__super__.constructor.call(this);
       this.size = {
         x: program[0].length,
-        y: program.length,
-        xrate: function(i) {
-          return Math.PI * 2 * i / this.x;
-        },
-        yrate: function(i) {
-          return Math.PI * 2 * i / this.y;
-        }
+        y: program.length
       };
       this.r1 = Math.max(16, this.size.y) * 2.7;
       this.r2 = Math.max(40, this.size.x) * 1.7 + this.r1;
+      this.cellCache = {};
+      fontSize = Math.max(160 / Math.max(this.size.x * 0.3, this.size.y), 16);
+      this.textGeometryGen = util.textGeometryGen(fontSize, 8, true);
       rotateSpeed = Math.PI * 0.001;
       (function(_this) {
         return (function() {
-          var tube, wireframe;
+          var offset, tube, wireframe;
           tube = _this.r1 - 15;
+          offset = Math.PI * 2 / _this.size.y;
           wireframe = util.flatMesh(new THREE.TorusGeometry(_this.r2, tube, _this.size.y, _this.size.x), 0xffffff);
           wireframe.material.wireframe = true;
           wireframe.material.opacity = 0.3;
           wireframe.material.transparent = true;
           _this.add(wireframe);
-          wireframe.offset_ = Math.PI * 2 / _this.size.y;
-          wireframe.update = function() {
-            var i, idx, j, u, v, _i, _ref, _results;
+          wireframe.geometry.dynamic = true;
+          return wireframe.update = function() {
+            var i, idx, j, u, v, _i, _j, _ref, _ref1;
             if (rotateSpeed === 0) {
               delete wireframe.update;
             }
-            wireframe.offset_ -= rotateSpeed;
-            wireframe.geometry.verticesNeedUpdate = true;
-            _results = [];
+            offset -= rotateSpeed;
             for (j = _i = 0, _ref = _this.size.y; 0 <= _ref ? _i <= _ref : _i >= _ref; j = 0 <= _ref ? ++_i : --_i) {
-              _results.push((function() {
-                var _j, _ref1, _results1;
-                _results1 = [];
-                for (i = _j = 0, _ref1 = this.size.x; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-                  u = i / this.size.x * Math.PI * 2;
-                  v = j / this.size.y * Math.PI * 2 + wireframe.offset_;
-                  idx = j * (this.size.x + 1) + i;
-                  wireframe.geometry.vertices[idx].x = (this.r2 + tube * Math.cos(v)) * Math.cos(u);
-                  wireframe.geometry.vertices[idx].y = (this.r2 + tube * Math.cos(v)) * Math.sin(u);
-                  _results1.push(wireframe.geometry.vertices[idx].z = tube * Math.sin(v));
-                }
-                return _results1;
-              }).call(_this));
+              for (i = _j = 0, _ref1 = _this.size.x; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+                u = i / _this.size.x * Math.PI * 2;
+                v = j / _this.size.y * Math.PI * 2 + offset;
+                idx = j * (_this.size.x + 1) + i;
+                wireframe.geometry.vertices[idx].x = (_this.r2 + tube * Math.cos(v)) * Math.cos(u);
+                wireframe.geometry.vertices[idx].y = (_this.r2 + tube * Math.cos(v)) * Math.sin(u);
+                wireframe.geometry.vertices[idx].z = tube * Math.sin(v);
+              }
             }
-            return _results;
+            return wireframe.geometry.verticesNeedUpdate = true;
           };
-          return null;
         });
       })(this)();
-      k = Math.max(160 / Math.max(this.size.x * 0.3, this.size.y), 16);
-      this.textGeometryGen = util.textGeometryGen(k, 8, true);
-      this.objects = (function() {
+      this.wheels = (function() {
         var _i, _ref, _results;
         _results = [];
         for (x = _i = 0, _ref = this.size.x; 0 <= _ref ? _i < _ref : _i > _ref; x = 0 <= _ref ? ++_i : --_i) {
-          xrate = this.size.xrate(x);
-          base = new THREE.Object3D();
-          base.position.set(Math.cos(xrate) * this.r2, Math.sin(xrate) * this.r2, 0);
-          base.rotation.z = xrate;
-          this.add(base);
-          base.wheel = new THREE.Object3D();
-          base.add(base.wheel);
-          if (rotateSpeed !== 0) {
-            base.wheel.update = function() {
-              return this.rotation.y += rotateSpeed;
-            };
-          }
-          base.ls = (function() {
+          xrate = Math.PI * 2 * x / this.size.x;
+          wheel = new Wheel(rotateSpeed);
+          wheel.position.set(Math.cos(xrate) * this.r2, Math.sin(xrate) * this.r2, 0);
+          wheel.rotation.z = xrate;
+          this.add(wheel);
+          wheel.ls = (function() {
             var _j, _ref1, _results1;
             _results1 = [];
             for (y = _j = 0, _ref1 = this.size.y; 0 <= _ref1 ? _j < _ref1 : _j > _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
               if (program[y][x] === " ") {
                 _results1.push(null);
               } else {
-                _results1.push(this.makeCell(program[y][x], y, 0, base.wheel));
+                _results1.push(this.makeCell(program[y][x], y, 0, wheel));
               }
             }
             return _results1;
           }).call(this);
-          _results.push(base);
+          _results.push(wheel);
         }
         return _results;
       }).call(this);
@@ -634,47 +680,62 @@
     };
 
     Torus.prototype.makeCell = function(text, y, offset, wheel) {
-      var ret;
-      ret = util.flatMesh(this.textGeometryGen(text), 0xffffff);
-      ret.material.transparent = true;
-      ret.offset_ = offset;
-      ret.y_ = y;
-      this.updateCell(ret);
-      wheel.add(ret);
-      return ret;
+      var cell, t, _ref;
+      cell = ((_ref = this.cellCache[text]) != null ? _ref.length : void 0) > 0 ? this.cellCache[text].shift() : (t = util.flatMesh(this.textGeometryGen(text), 0xffffff), t.material.transparent = true, t);
+      cell.text_ = text;
+      cell.offset_ = offset;
+      cell.y_ = y;
+      this.updateCell(cell);
+      wheel.makeDynamic();
+      wheel.payload.add(cell);
+      return cell;
     };
 
     Torus.prototype.updateCell = function(cell) {
       var yrate;
-      yrate = this.size.yrate(cell.y_);
+      yrate = Math.PI * 2 * cell.y_ / this.size.y;
       cell.position.set(Math.sin(yrate) * (this.r1 - cell.offset_), 0, Math.cos(yrate) * (this.r1 - cell.offset_));
       cell.rotation.y = yrate;
       return cell.rotation.z = Math.PI / 2;
     };
 
+    Torus.prototype.removeCell = function(cell, wheel) {
+      var _base, _name;
+      if ((_base = this.cellCache)[_name = cell.text_] == null) {
+        _base[_name] = [];
+      }
+      this.cellCache[cell.text_].push(cell);
+      wheel.makeDynamic();
+      return wheel.payload.remove(cell);
+    };
+
     Torus.prototype.readCode = function(y, x) {};
 
     Torus.prototype.writeCode = function(y, x, to) {
-      var base, obj, opSpeed, speed, tmp;
+      var obj, opSpeed, speed, tmp, wheel;
       speed = 3;
       opSpeed = 0.05;
-      base = this.objects[x];
-      if (base.ls[y] != null) {
-        obj = base.ls[y];
+      wheel = this.wheels[x];
+      if (wheel.ls[y] != null) {
+        wheel.beginAnimation();
+        obj = wheel.ls[y];
         obj.update = (function(_this) {
           return function() {
             obj.material.opacity -= opSpeed;
             obj.offset_ -= speed;
             _this.updateCell(obj);
             if (obj.material.opacity <= 0) {
-              return base.wheel.remove(obj);
+              _this.removeCell(obj, wheel);
+              delete obj.update;
+              return wheel.endAnimation();
             }
           };
         })(this);
       }
-      base.ls[y] = to === " " ? null : this.makeCell(to, y, speed / opSpeed, base.wheel);
-      if (base.ls[y] != null) {
-        tmp = base.ls[y];
+      wheel.ls[y] = to === " " ? null : this.makeCell(to, y, speed / opSpeed, wheel);
+      if (wheel.ls[y] != null) {
+        wheel.beginAnimation();
+        tmp = wheel.ls[y];
         tmp.material.opacity = 0;
         return tmp.update = (function(_this) {
           return function() {
@@ -683,7 +744,8 @@
             _this.updateCell(tmp);
             if (tmp.material.opacity >= 1) {
               tmp.material.opacity = 1;
-              return delete tmp.update;
+              delete tmp.update;
+              return wheel.endAnimation();
             }
           };
         })(this);
@@ -810,7 +872,7 @@
       this.passes = {
         render: new THREE.RenderPass(this.scene, this.camera),
         fxaa: new THREE.ShaderPass(THREE.FXAAShader),
-        bloom: new THREE.BloomPass(1.0),
+        bloom: new THREE.BloomPass(1.5),
         copy: new THREE.ShaderPass(THREE.CopyShader)
       };
       this.passes.copy.renderToScreen = true;

@@ -1,89 +1,130 @@
+class Wheel extends THREE.Object3D
+  constructor: (@rotateSpeed) ->
+    super()
+    @payload = new THREE.Object3D()
+    @add @payload
+    @stash = null
+    @currentRotation = 0
+    @moving = 0
+
+  beginAnimation: ->
+    @moving += 1
+    @makeDynamic()
+
+  endAnimation: ->
+    @moving -= 1
+
+  makeDynamic: ->
+    return if not @stash
+    @remove @payload
+    @payload = @stash
+    @stash = null
+    @add @payload
+
+  makeStatic: ->
+    return if @stash
+    @remove @payload
+    @stash = @payload
+
+    geo = new THREE.Geometry()
+    for g in @stash.children
+      g.matrixAutoUpdate && g.updateMatrix()
+      geo.merge g.geometry, g.matrix
+
+    @payload = util.flatMesh geo, 0xffffff
+    @add @payload
+
+  update: ->
+    @makeStatic() if @moving == 0
+    @currentRotation += @rotateSpeed
+    @payload.rotation.y = @currentRotation
+
 class Torus extends THREE.Object3D
   constructor: (program) ->
     super()
 
-    @size =
-      x: program[0].length
-      y: program.length
-      xrate: (i) -> Math.PI * 2 * i / @x
-      yrate: (i) -> Math.PI * 2 * i / @y
-
+    @size = x: program[0].length, y: program.length
     @r1 = Math.max(16, @size.y) * 2.7
     @r2 = Math.max(40, @size.x) * 1.7 + @r1
 
+    @cellCache = {}
+
+    fontSize = Math.max(160 / Math.max(@size.x * 0.3, @size.y), 16)
+    @textGeometryGen = util.textGeometryGen fontSize, 8, true
+
     rotateSpeed = Math.PI * 0.001
 
+    # torus wireframe
     do =>
       tube = @r1 - 15
+      offset = Math.PI * 2 / @size.y
 
-      # torus wireframe
       wireframe = util.flatMesh new THREE.TorusGeometry(@r2, tube, @size.y, @size.x), 0xffffff
       wireframe.material.wireframe = true
       wireframe.material.opacity = 0.3
       wireframe.material.transparent = true
       @add wireframe
 
-      # rotate wireframe
-      wireframe.offset_ = Math.PI * 2 / @size.y
+      # rotate
+      wireframe.geometry.dynamic = true
       wireframe.update = =>
         delete wireframe.update if rotateSpeed == 0
-        wireframe.offset_ -= rotateSpeed
-        wireframe.geometry.verticesNeedUpdate = true
+        offset -= rotateSpeed
         for j in [0..@size.y]
           for i in [0..@size.x]
             u = i / @size.x * Math.PI * 2
-            v = j / @size.y * Math.PI * 2 + wireframe.offset_
+            v = j / @size.y * Math.PI * 2 + offset
 
             idx = j * (@size.x + 1) + i
             wireframe.geometry.vertices[idx].x = ( @r2 + tube * Math.cos( v ) ) * Math.cos( u )
             wireframe.geometry.vertices[idx].y = ( @r2 + tube * Math.cos( v ) ) * Math.sin( u )
             wireframe.geometry.vertices[idx].z =  tube * Math.sin( v )
 
-      null
+        wireframe.geometry.verticesNeedUpdate = true
 
-    k = Math.max(160 / Math.max(@size.x * 0.3, @size.y), 16)
-    @textGeometryGen = util.textGeometryGen k, 8, true
+    @wheels = for x in [0...@size.x]
+      xrate = Math.PI * 2 * x / @size.x
 
-    @objects = for x in [0...@size.x]
-      xrate = @size.xrate x
+      wheel = new Wheel rotateSpeed
+      wheel.position.set Math.cos(xrate)*@r2, Math.sin(xrate)*@r2, 0
+      wheel.rotation.z = xrate
+      @add wheel
 
-      base = new THREE.Object3D()
-      base.position.set Math.cos(xrate)*@r2, Math.sin(xrate)*@r2, 0
-      base.rotation.z = xrate
-      @add base
+      wheel.ls = for y in [0...@size.y]
+        if program[y][x] == " " then null else @makeCell program[y][x], y, 0, wheel
 
-      base.wheel = new THREE.Object3D()
-      base.add base.wheel
-
-      # rotate objects
-      if rotateSpeed != 0
-        base.wheel.update = -> @rotation.y += rotateSpeed
-
-      base.ls = for y in [0...@size.y]
-        if program[y][x] == " " then null else @makeCell program[y][x], y, 0, base.wheel
-
-      base
-
-    # TODO reduce drawcall
+      wheel
 
   update: ->
     @rotation.x += 0.003
     @rotation.y += 0.003
 
   makeCell: (text, y, offset, wheel) ->
-    ret = util.flatMesh @textGeometryGen(text), 0xffffff
-    ret.material.transparent = true
-    ret.offset_ = offset
-    ret.y_ = y
-    @updateCell ret
-    wheel.add ret
-    ret
+    cell = if @cellCache[text]?.length > 0
+      @cellCache[text].shift()
+    else
+      t = util.flatMesh @textGeometryGen(text), 0xffffff
+      t.material.transparent = true
+      t
+    cell.text_ = text
+    cell.offset_ = offset
+    cell.y_ = y
+    @updateCell cell
+    wheel.makeDynamic()
+    wheel.payload.add cell
+    cell
 
   updateCell: (cell) ->
-    yrate = @size.yrate cell.y_
+    yrate = Math.PI * 2 * cell.y_ / @size.y
     cell.position.set Math.sin(yrate)*(@r1 - cell.offset_), 0, Math.cos(yrate)*(@r1 - cell.offset_)
     cell.rotation.y = yrate
     cell.rotation.z = Math.PI/2
+
+  removeCell: (cell, wheel) ->
+    @cellCache[cell.text_] ?= []
+    @cellCache[cell.text_].push cell
+    wheel.makeDynamic()
+    wheel.payload.remove cell
 
   readCode: (y, x) ->
     # nothing to do
@@ -91,24 +132,30 @@ class Torus extends THREE.Object3D
   writeCode: (y, x, to) ->
     speed = 3
     opSpeed = 0.05
-    base = @objects[x]
+    wheel = @wheels[x]
 
     # fade out the previous character
-    if base.ls[y]?
-      obj = base.ls[y]
+    if wheel.ls[y]?
+      wheel.beginAnimation()
+
+      obj = wheel.ls[y]
       obj.update = =>
         obj.material.opacity -= opSpeed
         obj.offset_ -= speed
         @updateCell obj
 
         if obj.material.opacity <= 0
-          base.wheel.remove obj
+          @removeCell obj, wheel
+          delete obj.update
+          wheel.endAnimation()
 
-    base.ls[y] = if to == " " then null else @makeCell to, y, speed/opSpeed, base.wheel
+    wheel.ls[y] = if to == " " then null else @makeCell to, y, speed/opSpeed, wheel
 
     # fade in the new character
-    if base.ls[y]?
-      tmp = base.ls[y]
+    if wheel.ls[y]?
+      wheel.beginAnimation()
+
+      tmp = wheel.ls[y]
       tmp.material.opacity = 0
       tmp.update = =>
         tmp.material.opacity += opSpeed
@@ -118,4 +165,5 @@ class Torus extends THREE.Object3D
         if tmp.material.opacity >= 1
           tmp.material.opacity = 1
           delete tmp.update
+          wheel.endAnimation()
 

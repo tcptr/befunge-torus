@@ -31,7 +31,7 @@ class World
     @passes =
       render: new THREE.RenderPass @scene, @camera
       fxaa:  new THREE.ShaderPass THREE.FXAAShader
-      bloom: new THREE.BloomPass 1.0
+      bloom: new THREE.BloomPass 1.5
       copy:  new THREE.ShaderPass THREE.CopyShader
 
     @passes.copy.renderToScreen = true

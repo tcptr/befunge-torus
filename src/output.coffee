@@ -1,24 +1,18 @@
 class Output extends THREE.Object3D
-  constructor: ->
+  constructor: (@height) ->
     super()
-    @height = 14
     @textGeometryGen = util.textGeometryGen @height, 8
     @cursor = x: 0, y: - @height - 2
 
     @tmpMatrix = new THREE.Matrix4()
 
-    @position.x = 150
-    @position.y = 250
-
-    @rotation.x = Math.PI * 0.3
-    @rotation.y = -Math.PI * 0.15
-
-    mesh = util.flatMesh new THREE.PlaneGeometry(400, 400, 16, 16), 0xffffff
+    size = 20
+    mesh = util.flatMesh new THREE.PlaneGeometry(@height * size, @height * size, size, size), 0xffffff
     mesh.material.wireframe = true
-    mesh.material.opacity = 0.3
     mesh.material.transparent = true
-    mesh.position.x = 180
-    mesh.position.y = -180
+    mesh.material.opacity = 0.5
+    mesh.position.x = @height * (size / 2 - 1)
+    mesh.position.y = -@height * (size / 2 - 1)
 
     @add mesh
 
@@ -44,7 +38,7 @@ class Output extends THREE.Object3D
     @buf = ""
     @currentLine = []
 
-    if @lines.length > 20
+    if @lines.length > 15
       @cursor.y += @height + 2
       @remove @lines.shift()
       for mesh in @lines
