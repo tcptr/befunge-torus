@@ -40,8 +40,18 @@ body{
   padding:5px;
   font-size:80%;
 }
+#entry select{
+  background:none;
+  border:1px solid #3498db;
+  color:#3498db;
+}
 #entry .right{
   text-align:right;
+}
+#entry th{
+  text-align:right;
+  font-weight:normal;
+  padding:3px;
 }
 #back{
   position:absolute;

@@ -313,6 +313,10 @@
       return $('#code').val(Examples[$(this).attr('href')]);
     });
     return $('#launch').on('click', function() {
+      util.font.name = $('#font').val();
+      if (util.font.name === "helvetiker") {
+        util.font.weight = "bold";
+      }
       new Main($('#code').val(), $('#inputchar').val(), $('#inputnumber').val(), $('#step').val());
       $('#entry').remove();
       $('#back').show();
@@ -854,6 +858,11 @@
         color: color
       });
     },
+    font: {
+      name: "",
+      weight: "normal",
+      style: "normal"
+    },
     textGeometryGen: function(size, height, centering) {
       var cache, options;
       if (centering == null) {
@@ -861,12 +870,12 @@
       }
       cache = {};
       options = {
-        font: "misakigothic",
+        font: util.font.name,
+        weight: util.font.weight,
+        style: util.font.style,
         size: size,
         height: height,
-        curveSegments: 4,
-        weight: "normal",
-        style: "normal"
+        curveSegments: 4
       };
       return function(text) {
         var a, offsets, ret, _ref;

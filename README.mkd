@@ -1,5 +1,10 @@
 befunge-torus
 =============
 
+Befunge interpreter and visualizer on [three.js](http://threejs.org/),
+implemented in CoffeeScript.
+
+[ ![](./resources/screenshot.jpg) ](http://tcptr.github.io/befunge-torus/)
+
 [Try it](http://tcptr.github.io/befunge-torus/)
 

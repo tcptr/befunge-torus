@@ -5,6 +5,8 @@ $ ->
     $('#code').val Examples[$(this).attr('href')]
 
   $('#launch').on 'click', ->
+    util.font.name = $('#font').val()
+    util.font.weight = "bold" if util.font.name == "helvetiker"
     new Main $('#code').val(), $('#inputchar').val(), $('#inputnumber').val(), $('#step').val()
     $('#entry').remove()
     $('#back').show()

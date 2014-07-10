@@ -11,15 +11,20 @@ util =
   basicMaterial: (color = 0xffffff) ->
     new THREE.MeshBasicMaterial color: color
 
+  font:
+    name: ""
+    weight: "normal"
+    style: "normal"
+
   textGeometryGen: (size, height, centering = false) ->
     cache = {}
     options =
-      font: "misakigothic"
+      font: util.font.name
+      weight: util.font.weight
+      style: util.font.style
       size: size
       height: height
       curveSegments: 4
-      weight: "normal"
-      style: "normal"
 
     (text) ->
       return cache[text] if cache[text]?

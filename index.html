@@ -39,9 +39,13 @@
         <li><a href="#aturley" class="example">Sierpinski gasket</a></li>
       </ul>
       <table>
-        <tr><td>input character</td><td><input type="text" id="inputchar"></td></tr>
-        <tr><td>input number</td><td><input type="text" id="inputnumber"></td></tr>
-        <tr><td>step per frame</td><td><input type="text" id="step" value="1"></td></tr>
+        <tr><th>input character:</th><td><input type="text" id="inputchar"></td>
+          <th>number:</th><td><input type="text" id="inputnumber"></td></tr>
+        <tr><th>step per frame:</th><td><input type="text" id="step" value="1"></td>
+        <th>font:</th><td><select id="font">
+          <option value="misakigothic" selected>MisakiGothic</option>
+          <option value="helvetiker">Helvetiker Bold</option>
+        </select></td></tr>
       </table>
       <textarea id="code"></textarea>
       <p><a href="#" id="launch">Launch!</a></p>
