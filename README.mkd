@@ -1,5 +1,5 @@
 befunge-torus
 =============
 
-WIP
+[Try it](http://tcptr.github.io/befunge-torus/)
 
